@@ -25,6 +25,10 @@ export async function POST(req: Request) {
     const result = await response.json();
     console.log("[route.ts] FastAPI Result:", result);
 
+    if (!response.ok) {
+      return NextResponse.json(result, { status: response.status });
+    }
+
     return NextResponse.json(result);
   } catch (error) {
     console.error("[route.ts] Prediction Error:", error);

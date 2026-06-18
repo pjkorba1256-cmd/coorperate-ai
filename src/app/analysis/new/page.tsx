@@ -79,12 +79,12 @@ export default function NewAnalysisPage() {
       setLoadingMsg(messages[1]);
       const payload = {
         year: Number(form.year),
-        ai_adoption_level: Number(form.ai_adoption_level),
+        ai_adoption_level: Math.round(Number(form.ai_adoption_level)),
         ai_investment_usd: Number(form.ai_investment_usd),
         automation_rate: Number(form.automation_rate),
         productivity_gain: Number(form.productivity_gain),
-        employee_ai_training_hours: Number(form.employee_ai_training_hours),
-        ai_maturity_score: Number(form.ai_maturity_score),
+        employee_ai_training_hours: Math.round(Number(form.employee_ai_training_hours)),
+        ai_maturity_score: Math.round(Number(form.ai_maturity_score)),
         deployment_count: Number(form.deployment_count),
         industry: form.industry,
         country: form.country
@@ -107,6 +107,8 @@ export default function NewAnalysisPage() {
         boardroom_report: string;
         shap_features: ShapFeature[];
       } = await predictRes.json();
+      
+      const cappedRoi = Math.max(0, Math.min(100, rawPredictions.roi_percentage));
 
       setLoadingMsg(messages[4]);
       const saveRes = await fetch('/api/analysis', {
@@ -120,8 +122,8 @@ export default function NewAnalysisPage() {
           businessGoals: "AI Strategy Projection", 
           datasetUrl: "",
           readinessScore: Number(form.ai_maturity_score) * 10,
-          roiForecast: rawPredictions.roi_percentage,
-          costReduction: rawPredictions.roi_percentage > 50 ? 25 : 10,
+          roiForecast: cappedRoi,
+          costReduction: cappedRoi > 50 ? 25 : 10,
           maturityLevel: getReadinessCategory(Number(form.ai_maturity_score)),
           predictedBenefit: rawPredictions.predicted_financial_benefit_usd,
           boardroomReport: rawPredictions.boardroom_report,
