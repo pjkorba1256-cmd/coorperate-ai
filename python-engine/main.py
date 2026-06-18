@@ -6,12 +6,12 @@ app = FastAPI()
 
 class PredictionRequest(BaseModel):
     year: int
-    ai_adoption_level: int
+    ai_adoption_level: float
     ai_investment_usd: float
     automation_rate: float
     productivity_gain: float
-    employee_ai_training_hours: int
-    ai_maturity_score: int
+    employee_ai_training_hours: float
+    ai_maturity_score: float
     deployment_count: int
     industry: str
     country: str

@@ -171,6 +171,11 @@ function DifficultyBadge({ level }: { level: string }) {
 import { toast } from "sonner";
 import { useEffect, use } from "react";
 
+interface ShapFeature {
+  feature: string;
+  importance: number;
+}
+
 // ─── Results Page ──────────────────────────────────────────────────────────────
 export default function ResultsPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
@@ -239,16 +244,17 @@ export default function ResultsPage({ params }: { params: Promise<{ id: string }
   const r: any = analysisData ? {
     ...mockResult,
     analysis_id: analysisData.id,
-    industry: analysisData.industry || mockResult.industry,
-    company_size: analysisData.companySize || mockResult.company_size,
-    use_case: analysisData.businessGoals || mockResult.use_case,
-    readiness_score_total: analysisData.readinessScore || mockResult.readiness_score_total,
+    industry: analysisData.industry ?? mockResult.industry,
+    company_size: analysisData.companySize ?? mockResult.company_size,
+    use_case: analysisData.businessGoals ?? mockResult.use_case,
+    readiness_score_total: analysisData.readinessScore ?? mockResult.readiness_score_total,
     roi_prediction: {
       ...mockResult.roi_prediction,
-      roi_predicted_pct: analysisData.roiForecast || mockResult.roi_prediction.roi_predicted_pct,
+      roi_predicted_pct: analysisData.roiForecast ?? mockResult.roi_prediction.roi_predicted_pct,
     },
     predictedBenefit: analysisData.predictedBenefit,
-    boardroomReport: analysisData.boardroomReport
+    boardroomReport: analysisData.boardroomReport,
+    shap_features: analysisData.shapFeatures ?? mockResult.shap_features
   } : mockResult;
 
   return (
@@ -470,7 +476,7 @@ export default function ResultsPage({ params }: { params: Promise<{ id: string }
                           formatter={(v: any) => [`${v}%`, "Contribution"]}
                         />
                         <Bar dataKey="importance" radius={[0, 2, 2, 0]}>
-                          {r.shap_features.map((entry: any, index: number) => {
+                          {r.shap_features.map((entry: ShapFeature, index: number) => {
                             const opacity = Math.max(0.3, 1 - index * 0.1);
                             return (
                               <Cell

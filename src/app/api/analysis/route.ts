@@ -58,6 +58,7 @@ export async function POST(req: Request) {
       maturityLevel,
       predictedBenefit,
       boardroomReport,
+      shapFeatures,
     } = body;
 
     if (!companyName || !industry || !companySize) {
@@ -79,6 +80,7 @@ export async function POST(req: Request) {
         maturityLevel,
         predictedBenefit,
         boardroomReport,
+        shapFeatures,
       }
     });
 

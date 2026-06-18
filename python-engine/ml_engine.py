@@ -99,6 +99,9 @@ def calculate_roi(user_payload):
     else:
         roi_percentage = (predicted_benefit / initial_investment) * 100
         
+    # Cap the ROI between 0 and 100%
+    roi_percentage = max(0, min(100, roi_percentage))
+        
     # Round the numbers to look clean on the frontend
     final_benefit_rounded = round(float(predicted_benefit), 2)
     final_roi_rounded = round(float(roi_percentage), 2)
@@ -111,9 +114,22 @@ def calculate_roi(user_payload):
         benefit=final_benefit_rounded
     )
 
-    # Step E: Package it ALL up in ONE final return statement
+    # Step E: Extract Real SHAP / Feature Importances
+    importances = champion_model.feature_importances_
+    shap_data = []
+    for name, imp in zip(EXPECTED_COLUMNS, importances):
+        if imp > 0:
+            shap_data.append({
+                "feature": name.replace('industry_', '').replace('country_', '').replace('_', ' ').title(),
+                "importance": round(float(imp) * 100, 1)
+            })
+    
+    shap_data = sorted(shap_data, key=lambda x: x["importance"], reverse=True)[:6]
+
+    # Step F: Package it ALL up in ONE final return statement
     return {
         "predicted_financial_benefit_usd": final_benefit_rounded,
         "roi_percentage": final_roi_rounded,
-        "boardroom_report": llm_report
+        "boardroom_report": llm_report,
+        "shap_features": shap_data
     }

@@ -7,681 +7,384 @@ import { toast } from "sonner";
 import Sidebar from "@frontend/components/Sidebar";
 import TopBar from "@frontend/components/TopBar";
 import {
-  Building2,
-  MapPin,
-  DollarSign,
-  Users,
-  Calendar,
-  ArrowRight,
-  ArrowLeft,
-  Loader2,
-  Check,
-  Briefcase,
-  Layers,
-  Upload
+  Building2, MapPin, Calendar, Activity, Zap, Users, Shield, Target, Server, Lightbulb,
+  ArrowRight, ArrowLeft, Loader2, Check, DollarSign, BarChart3, Rocket
 } from "lucide-react";
-import { FileUpload } from "@frontend/components/FileUpload";
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
-interface CompanyProfile {
-  industry_sector: string;
-  company_size: string;
-  annual_revenue_usd: number;
-  employee_count: number;
+interface FormState {
+  industry: string;
   country: string;
-  is_startup: boolean;
-  funding_stage: string;
+  year: number | string;
+  ai_adoption_level: number | string;
+  automation_rate: number | string;
+  productivity_gain: number | string;
+  employee_ai_training_hours: number | string;
+  ai_maturity_score: number | string;
+  ai_investment_usd: number | string;
+  deployment_count: number | string;
 }
 
-interface ReadinessScores {
-  data_score: number;
-  talent_score: number;
-  leadership_score: number;
-  tech_stack_score: number;
-  change_mgmt_score: number;
-  data_quality_score: number;
-}
-
-interface AIInitiative {
-  use_case: string;
-  investment_budget_usd: number;
-  timeline_months: number;
-}
-
-// ─── Score Slider ──────────────────────────────────────────────────────────────
-function ScoreSlider({ label, description, value, onChange }: {
-  label: string; description: string; value: number;
-  onChange: (v: number) => void;
-}) {
-  const isHigh = value >= 7;
-  const isMid = value >= 4 && value < 7;
-  const barColor = isHigh ? "#10B981" : isMid ? "#fbbf24" : "#ef4444";
-  const badgeColor = isHigh
-    ? { color: "#10B981", bg: "rgba(16,185,129,0.08)", border: "rgba(16,185,129,0.2)" }
-    : isMid
-      ? { color: "#fbbf24", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.2)" }
-      : { color: "#ef4444", bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.2)" };
-
-  return (
-    <div style={{
-      padding: "1.75rem",
-      border: "1px solid #e5e7eb",
-      background: "#fafafa",
-      marginBottom: "1.25rem",
-    }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.25rem", gap: "1.25rem" }}>
-        <div>
-          <h4 style={{ fontSize: "1.05rem", fontWeight: 700, color: "#111827" }}>{label}</h4>
-          <p style={{ fontSize: "0.85rem", color: "#9ca3af", marginTop: "0.25rem" }}>{description}</p>
-        </div>
-        <div style={{
-          minWidth: "56px", height: "56px",
-          border: `1px solid ${badgeColor.border}`,
-          background: badgeColor.bg,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: "1.1rem", fontWeight: 900, color: badgeColor.color,
-          flexShrink: 0,
-        }}>
-          {value.toFixed(1)}
-        </div>
-      </div>
-      <input
-        type="range" min={0} max={10} step={0.5} value={value}
-        onChange={e => onChange(parseFloat(e.target.value))}
-        style={{
-          width: "100%", height: "5px", cursor: "pointer", outline: "none",
-          WebkitAppearance: "none", appearance: "none",
-          backgroundImage: `linear-gradient(90deg, ${barColor} ${value * 10}%, #e5e7eb ${value * 10}%)`,
-          borderRadius: "2px",
-        }}
-      />
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.75rem", fontSize: "0.75rem", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-        <span>0 — Not Ready</span>
-        <span>5 — Average</span>
-        <span>10 — Advanced</span>
-      </div>
-    </div>
-  );
-}
-
-// ─── Step Progress ─────────────────────────────────────────────────────────────
-function StepProgress({ currentStep }: { currentStep: number }) {
-  const steps = ["Company Profile", "AI Readiness", "Initiative Setup"];
-  return (
-    <div className="flex items-center justify-center mb-6 md:mb-10 p-4 md:p-8 md:px-10 bg-white border border-gray-200">
-      {steps.map((step, i) => {
-        const num = i + 1;
-        const isActive = num === currentStep;
-        const isDone = num < currentStep;
-        return (
-          <div key={step} style={{ display: "flex", alignItems: "center", flex: 1, justifyContent: i === steps.length - 1 ? "flex-end" : "flex-start" }}>
-            <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", gap: "0.6rem" }}>
-              <div style={{
-                width: "44px", height: "44px",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontWeight: 800, fontSize: "0.9rem",
-                background: isDone ? "#1a3a5c" : isActive ? "#c8a96e" : "#f3f4f6",
-                color: isDone || isActive ? "#ffffff" : "#9ca3af",
-                border: `2px solid ${isDone ? "#1a3a5c" : isActive ? "#c8a96e" : "#e5e7eb"}`,
-                transition: "all 0.3s",
-              }}>
-                {isDone ? <Check size={18} /> : num}
-              </div>
-              <span style={{
-                fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em",
-                color: isActive ? "#1a3a5c" : "#9ca3af", whiteSpace: "nowrap",
-              }}>
-                {step}
-              </span>
-            </div>
-            {i < steps.length - 1 && (
-              <div style={{
-                flex: 1, height: "2px", margin: "0 1.25rem",
-                background: isDone ? "#1a3a5c" : "#e5e7eb",
-                marginBottom: "1.5rem",
-                transition: "background 0.3s",
-              }} />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function NewAnalysisPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("");
 
-  const [company, setCompany] = useState<CompanyProfile>({
-    industry_sector: "", company_size: "",
-    annual_revenue_usd: 100, employee_count: 500, country: "",
-    is_startup: false, funding_stage: "",
+  const [form, setForm] = useState<FormState>({
+    industry: "",
+    country: "",
+    year: 2029,
+    ai_adoption_level: 0.4987,
+    automation_rate: 0.4119,
+    productivity_gain: 0.3924,
+    employee_ai_training_hours: 76.8,
+    ai_maturity_score: 6.37,
+    ai_investment_usd: 11747237,
+    deployment_count: 29,
   });
 
-  const [readiness, setReadiness] = useState<ReadinessScores>({
-    data_score: 5, talent_score: 5, leadership_score: 5,
-    tech_stack_score: 5, change_mgmt_score: 5, data_quality_score: 5,
-  });
-
-  const [initiative, setInitiative] = useState<AIInitiative & { datasetUrl?: string }>({
-    use_case: "", investment_budget_usd: 500000, timeline_months: 12,
-  });
-
-  const readinessTotal = parseFloat((
-    readiness.data_score * 0.25 +
-    readiness.talent_score * 0.20 +
-    readiness.leadership_score * 0.20 +
-    readiness.tech_stack_score * 0.15 +
-    readiness.change_mgmt_score * 0.10 +
-    readiness.data_quality_score * 0.10
-  ).toFixed(1)) * 10;
+  const getReadinessCategory = (score: number) => {
+    const s = score * 10; // scale 0-10 to 0-100 for category
+    if (s < 30) return "Beginner";
+    if (s < 60) return "Intermediate";
+    if (s < 85) return "Advanced";
+    return "Leader";
+  };
 
   const handleSubmit = async () => {
-    if (!company.industry_sector || !company.company_size) {
-      toast.error("Please fill in all required Company Profile fields.");
+    if (!form.industry || !form.country || !form.year) {
+      toast.error("Please complete the Organization Information.");
       setStep(1);
       return;
     }
-    if (!initiative.use_case) {
-      toast.error("Please select an AI Use Case.");
+    if (Number(form.ai_investment_usd) <= 0 || Number(form.deployment_count) < 1) {
+      toast.error("Please provide valid Initiative Configuration.");
       setStep(3);
       return;
     }
 
     setLoading(true);
     const messages = [
-      "Structuring core company profile matrices...",
-      "Calculating dimension-specific readiness index...",
-      "Loading predictive ROI simulation model (10k Monte Carlo runs)...",
-      "Running SHAP analysis to extract feature weights...",
-      "Generating tailored strategic roadmap files...",
-      "Compiling boardroom-ready report draft...",
+      "Validating organizational dataset inputs...",
+      "Mapping capability assessment to XGBoost tensors...",
+      "Calling HuggingFace ROI Prediction Model...",
+      "Extracting SHAP feature importances...",
+      "Persisting analysis to Neon Postgres...",
     ];
-    
-    // Simulate some stages for UI purposes
-    for (let i = 0; i < 3; i++) {
-      setLoadingMsg(messages[i]);
-      await new Promise(r => setTimeout(r, 600));
-    }
 
     try {
-      // 1. Build payload for ML model
-setLoadingMsg(messages[3]);
+      setLoadingMsg(messages[0]);
+      await new Promise(r => setTimeout(r, 600));
 
-const apiPayload = {
-  year: new Date().getFullYear(),
-  ai_adoption_level: Math.max(
-    1,
-    Math.min(5, Math.round(readiness.leadership_score / 2))
-  ),
-  ai_investment_usd: Number(initiative.investment_budget_usd),
-  automation_rate: parseFloat(
-    (readiness.tech_stack_score / 10).toFixed(2)
-  ),
-  productivity_gain: parseFloat(
-    (readiness.data_quality_score / 10).toFixed(2)
-  ),
-  employee_ai_training_hours: Math.round(
-    readiness.talent_score * 20
-  ),
-  ai_maturity_score: Math.round(readinessTotal),
-  deployment_count: Math.max(
-    1,
-    Math.floor(initiative.timeline_months / 2)
-  ),
-  industry: company.industry_sector,
-  country: company.country,
-};
+      setLoadingMsg(messages[1]);
+      const payload = {
+        year: Number(form.year),
+        ai_adoption_level: Number(form.ai_adoption_level),
+        ai_investment_usd: Number(form.ai_investment_usd),
+        automation_rate: Number(form.automation_rate),
+        productivity_gain: Number(form.productivity_gain),
+        employee_ai_training_hours: Number(form.employee_ai_training_hours),
+        ai_maturity_score: Number(form.ai_maturity_score),
+        deployment_count: Number(form.deployment_count),
+        industry: form.industry,
+        country: form.country
+      };
 
-// Removed Render URL fallback to enforce calling Next.js API route
-console.log("Before frontend fetch: POST to /api/predict with body:", apiPayload);
+      setLoadingMsg(messages[2]);
+      const predictRes = await fetch(`/api/predict`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-const predictRes = await fetch(`/api/predict`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify(apiPayload),
-});
+      if (!predictRes.ok) throw new Error(`Prediction API failed with status ${predictRes.status}`);
 
-console.log("After frontend fetch. Status:", predictRes.status);
-
-if (!predictRes.ok) {
-  throw new Error(
-    `Prediction API failed with status ${predictRes.status}`
-  );
-}
-
-const rawPredictions: { predicted_financial_benefit_usd: number; roi_percentage: number; boardroom_report: string } = await predictRes.json();
-
-console.log("ML Prediction Response:", rawPredictions);
-
-const predictions = {
-  roiForecast: rawPredictions.roi_percentage,
-  costReduction: rawPredictions.roi_percentage > 50 ? 25 : rawPredictions.roi_percentage > 20 ? 15 : 5,
-  maturityLevel: rawPredictions.roi_percentage > 80 ? "Advanced" : rawPredictions.roi_percentage > 40 ? "Intermediate" : "Beginner",
-  predictedBenefit: rawPredictions.predicted_financial_benefit_usd,
-  boardroomReport: rawPredictions.boardroom_report,
-};
-
-// Store latest prediction for debugging/results page
-localStorage.setItem(
-  "latest_roi_prediction",
-  JSON.stringify(predictions)
-);
-
-localStorage.setItem(
-  "latest_query_payload",
-  JSON.stringify(apiPayload)
-);
+      setLoadingMsg(messages[3]);
+      interface ShapFeature { feature: string; importance: number; }
+      const rawPredictions: { 
+        predicted_financial_benefit_usd: number; 
+        roi_percentage: number; 
+        boardroom_report: string;
+        shap_features: ShapFeature[];
+      } = await predictRes.json();
 
       setLoadingMsg(messages[4]);
-      // 2. Save Analysis
       const saveRes = await fetch('/api/analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          companyName: company.industry_sector + " Corp", // Mock name
-          industry: company.industry_sector,
-          companySize: company.company_size,
-          revenue: String(company.annual_revenue_usd),
-          businessGoals: initiative.use_case,
-          datasetUrl: initiative.datasetUrl,
-          readinessScore: readinessTotal,
-          roiForecast: predictions.roiForecast,
-          costReduction: predictions.costReduction,
-          maturityLevel: predictions.maturityLevel,
-          predictedBenefit: predictions.predictedBenefit,
-          boardroomReport: predictions.boardroomReport
+          companyName: `${form.industry} Enterprise`, 
+          industry: form.industry,
+          companySize: "Enterprise", 
+          revenue: "0", 
+          businessGoals: "AI Strategy Projection", 
+          datasetUrl: "",
+          readinessScore: Number(form.ai_maturity_score) * 10,
+          roiForecast: rawPredictions.roi_percentage,
+          costReduction: rawPredictions.roi_percentage > 50 ? 25 : 10,
+          maturityLevel: getReadinessCategory(Number(form.ai_maturity_score)),
+          predictedBenefit: rawPredictions.predicted_financial_benefit_usd,
+          boardroomReport: rawPredictions.boardroom_report,
+          shapFeatures: rawPredictions.shap_features
         })
       });
 
-      setLoadingMsg(messages[5]);
       if (saveRes.ok) {
         const savedAnalysis = await saveRes.json();
         router.push(`/analysis/${savedAnalysis.id}`);
       } else {
-        let errMsg = "Failed to save analysis";
-        try {
-          const errData = await saveRes.json();
-          if (errData.error) errMsg = errData.error;
-        } catch (e) {}
-        throw new Error(errMsg);
+        const errData = await saveRes.json();
+        throw new Error(errData.error || "Failed to save analysis");
       }
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "Failed to save analysis. Please check your connection.");
+      toast.error(err.message || "Failed to process prediction.");
       setLoading(false);
     }
   };
 
-  const industries = ["Healthcare", "Financial Services", "Retail & E-Commerce", "Manufacturing", "Technology", "Education", "Logistics", "Energy", "Telecommunications"];
-  const companySizes = ["SMB (< 200)", "Mid-Market (200-1,000)", "Enterprise (1,000-10,000)", "Large Enterprise (10,000+)"];
-  const useCases = ["Predictive Analytics", "Natural Language Processing", "Computer Vision", "Fraud Detection", "Demand Forecasting", "Customer Churn Prediction", "Process Automation", "Recommendation Engine", "Predictive Maintenance", "Document Intelligence"];
-
-  const inputStyle = {
-    width: "100%", padding: "0.9rem 1.25rem", paddingLeft: "3rem",
-    background: "#ffffff", border: "1px solid #d1d5db",
-    fontSize: "0.95rem", color: "#111827", outline: "none",
-    transition: "border-color 0.2s",
+  const renderStepProgress = () => {
+    const steps = ["Organization Info", "Capability Assessment", "Initiative Config"];
+    return (
+      <div className="flex items-center justify-between mb-10 w-full relative before:absolute before:top-1/2 before:left-0 before:h-0.5 before:w-full before:bg-gray-200 before:-z-10">
+        {steps.map((title, i) => {
+          const num = i + 1;
+          const isActive = num === step;
+          const isDone = num < step;
+          return (
+            <div key={title} className="flex flex-col items-center gap-2 bg-white px-4">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 border-2 ${
+                isDone ? "bg-[#1a3a5c] text-white border-[#1a3a5c]" :
+                isActive ? "bg-[#c8a96e] text-white border-[#c8a96e] shadow-md scale-110" :
+                "bg-gray-50 text-gray-400 border-gray-200"
+              }`}>
+                {isDone ? <Check size={18} /> : num}
+              </div>
+              <span className={`text-[0.65rem] md:text-xs font-bold uppercase tracking-widest ${isActive ? "text-[#1a3a5c]" : "text-gray-400"}`}>
+                {title}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
-  const selectStyle = {
-    width: "100%", padding: "0.9rem 1.25rem", paddingLeft: "3rem",
-    background: "#ffffff", border: "1px solid #d1d5db",
-    fontSize: "0.95rem", color: "#111827", outline: "none", cursor: "pointer",
-  };
+  const renderSidebar = () => (
+    <div className="hidden lg:flex w-80 shrink-0 sticky top-6 h-fit flex-col gap-5">
+      <div className="bg-white/80 backdrop-blur-xl border border-gray-200/60 p-6 shadow-xl shadow-gray-200/40 rounded-2xl">
+        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+          <Activity size={14} className="text-[#1a3a5c]" /> Live Projections
+        </h3>
+
+        <div className="flex flex-col gap-5">
+          {/* Readiness Score */}
+          <div className="flex justify-between items-center pb-4 border-b border-gray-100">
+            <span className="text-sm font-semibold text-gray-500">AI Maturity Score</span>
+            <div className="flex items-end gap-1">
+              <span className="text-2xl font-black text-[#1a3a5c] leading-none">{Number(form.ai_maturity_score).toFixed(2)}</span>
+              <span className="text-xs font-bold text-gray-400 leading-none pb-0.5">/ 10</span>
+            </div>
+          </div>
+
+          {/* Category */}
+          <div className="flex justify-between items-center pb-4 border-b border-gray-100">
+            <span className="text-sm font-semibold text-gray-500">Readiness Category</span>
+            <span className="text-xs font-bold px-2 py-1 rounded bg-[#1a3a5c]/10 text-[#1a3a5c] border border-[#1a3a5c]/20 uppercase tracking-wider">
+              {getReadinessCategory(Number(form.ai_maturity_score))}
+            </span>
+          </div>
+
+          {/* Adoption Level */}
+          <div className="flex justify-between items-center pb-4 border-b border-gray-100">
+            <span className="text-sm font-semibold text-gray-500">Adoption Level</span>
+            <span className="text-sm font-bold text-gray-800 text-right max-w-[120px] truncate">
+              {Number(form.ai_adoption_level).toFixed(4)}
+            </span>
+          </div>
+
+          {/* Investment Budget */}
+          <div className="flex justify-between items-center pb-4 border-b border-gray-100">
+            <span className="text-sm font-semibold text-gray-500">Investment Budget</span>
+            <span className="text-base font-black text-[#10B981]">
+              ${Number(form.ai_investment_usd).toLocaleString()}
+            </span>
+          </div>
+
+          {/* Deployments */}
+          <div className="flex justify-between items-center pb-4 border-b border-gray-100">
+            <span className="text-sm font-semibold text-gray-500">Deployments</span>
+            <span className="text-base font-black text-gray-800">{form.deployment_count}</span>
+          </div>
+
+          {/* Prediction Confidence */}
+          <div className="flex justify-between items-center pt-2">
+            <span className="text-sm font-semibold text-gray-500">ML Confidence</span>
+            <span className="text-xs font-black text-green-600 bg-green-50 px-2 py-1 rounded uppercase tracking-wider border border-green-200 flex items-center gap-1">
+              <Shield size={12} /> High
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#f3f4f6" }}>
+    <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar />
-      <main style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-        <TopBar title="New Analysis" subtitle="Complete the 3-step wizard to evaluate your AI initiative" />
+      <main className="flex-1 overflow-y-auto flex flex-col">
+        <TopBar title="AI Strategy Configuration" subtitle="Define organizational parameters exactly matching the XGBoost dataset" />
 
-        <div className="flex-1 p-4 md:p-10 overflow-y-auto">
-          <div className="max-w-[900px] mx-auto">
-            <StepProgress currentStep={step} />
+        <div className="flex-1 p-4 md:p-8 lg:p-10 max-w-[1400px] mx-auto w-full flex flex-col lg:flex-row gap-8 lg:gap-12 relative items-start justify-center">
+          
+          {/* Main Content Container (Centered) */}
+          <div className="flex-1 w-full max-w-[800px] mx-auto">
+            {renderStepProgress()}
 
             <AnimatePresence mode="wait">
               {loading ? (
-                /* Loading state */
-                <motion.div
-                  key="loading"
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  style={{
-                    background: "#ffffff", border: "1px solid #e5e7eb",
-                    padding: "5rem 2.5rem", textAlign: "center",
-                  }}
-                >
-                  <div style={{ width: "64px", height: "64px", background: "#1a3a5c", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.75rem" }}>
-                    <Loader2 size={32} color="white" className="animate-spin" style={{ animation: "spin 1s linear infinite" }} />
+                <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="bg-white border border-gray-200/80 p-12 text-center rounded-2xl shadow-sm">
+                  <div className="w-16 h-16 bg-[#1a3a5c] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-[#1a3a5c]/20">
+                    <Loader2 size={32} color="white" className="animate-spin" />
                   </div>
-                  <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#111827", marginBottom: "1rem" }}>
-                    Processing AI Strategy Models
-                  </h3>
-                  <p style={{ fontSize: "0.95rem", color: "#6b7280", maxWidth: "540px", margin: "0 auto", lineHeight: 1.7, minHeight: "48px" }}>
-                    {loadingMsg}
-                  </p>
-                  <div style={{ display: "flex", gap: "0.625rem", justifyContent: "center", flexWrap: "wrap", marginTop: "2.5rem" }}>
-                    {["Sector Match", "Readiness Indexes", "ROI Projections", "SHAP Factors", "Recommendations"].map(s => (
-                      <span key={s} style={{
-                        padding: "0.45rem 1.1rem", background: "#f3f4f6", border: "1px solid #e5e7eb",
-                        fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#6b7280",
-                      }}>{s}</span>
-                    ))}
-                  </div>
-                  <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+                  <h3 className="text-xl font-black text-gray-900 mb-4">Computing Strategic Projections</h3>
+                  <p className="text-sm text-gray-500 max-w-md mx-auto">{loadingMsg}</p>
                 </motion.div>
               ) : (
-                <motion.div
-                  key={`step-${step}`}
-                  initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.25 }}
-                  className="bg-white border border-gray-200 p-5 md:p-11"
-                >
-                  {/* Step 1: Company Profile */}
+                <motion.div key={`step-${step}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="bg-white border border-gray-200/80 p-6 md:p-10 rounded-2xl shadow-sm">
+                  
+                  {/* STEP 1 */}
                   {step === 1 && (
-                    <div>
-                      <div style={{ marginBottom: "2rem", paddingBottom: "1.25rem", borderBottom: "1px solid #f3f4f6" }}>
-                        <h3 style={{ fontSize: "1.15rem", fontWeight: 800, color: "#111827", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                          Company Profile
-                        </h3>
-                        <p style={{ fontSize: "0.875rem", color: "#9ca3af", marginTop: "0.3rem" }}>
-                          Provide general operational metadata about your firm.
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        {/* Industry */}
-                        <div>
-                          <label className="form-label" style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, color: "#374151", marginBottom: "0.5rem" }}>Industry Sector *</label>
-                          <div style={{ position: "relative" }}>
-                            <Briefcase size={18} color="#9ca3af" style={{ position: "absolute", left: "1.1rem", top: "50%", transform: "translateY(-50%)", zIndex: 1 }} />
-                            <select value={company.industry_sector}
-                              onChange={e => setCompany({ ...company, industry_sector: e.target.value })}
-                              style={selectStyle}>
-                              <option value="">Select industry...</option>
-                              {industries.map(i => <option key={i} value={i}>{i}</option>)}
-                            </select>
-                          </div>
-                        </div>
-                        {/* Country */}
-                        <div>
-                          <label className="form-label" style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, color: "#374151", marginBottom: "0.5rem" }}>Country / Region *</label>
-                          <div style={{ position: "relative" }}>
-                            <MapPin size={18} color="#9ca3af" style={{ position: "absolute", left: "1.1rem", top: "50%", transform: "translateY(-50%)", zIndex: 1 }} />
-                            <select value={company.country}
-                              onChange={e => setCompany({ ...company, country: e.target.value })}
-                              style={selectStyle}>
-                              <option value="">Select region...</option>
-                              {["United States", "United Kingdom", "Canada", "Germany", "France", "Australia", "India", "Singapore", "UAE"].map(c => (
-                                <option key={c} value={c}>{c}</option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Business Type (Startup or Established) */}
-                      <div style={{ marginBottom: "1.5rem" }}>
-                        <label className="form-label" style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, color: "#374151", marginBottom: "0.5rem" }}>Business Type *</label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <label style={{
-                            display: "flex", alignItems: "center", gap: "1rem",
-                            padding: "1.1rem 1.5rem",
-                            border: `2px solid ${!company.is_startup ? "#1a3a5c" : "#e5e7eb"}`,
-                            background: !company.is_startup ? "rgba(26,58,92,0.04)" : "#ffffff",
-                            cursor: "pointer", transition: "all 0.2s",
-                          }}>
-                            <input type="radio" name="is_startup" checked={!company.is_startup}
-                              onChange={() => setCompany({ ...company, is_startup: false })}
-                              style={{ accentColor: "#1a3a5c" }} />
-                            <span style={{ fontSize: "0.92rem", fontWeight: 600, color: !company.is_startup ? "#1a3a5c" : "#374151" }}>Established Enterprise</span>
-                          </label>
-
-                          <label style={{
-                            display: "flex", alignItems: "center", gap: "1rem",
-                            padding: "1.1rem 1.5rem",
-                            border: `2px solid ${company.is_startup ? "#1a3a5c" : "#e5e7eb"}`,
-                            background: company.is_startup ? "rgba(26,58,92,0.04)" : "#ffffff",
-                            cursor: "pointer", transition: "all 0.2s",
-                          }}>
-                            <input type="radio" name="is_startup" checked={company.is_startup}
-                              onChange={() => setCompany({ ...company, is_startup: true })}
-                              style={{ accentColor: "#1a3a5c" }} />
-                            <span style={{ fontSize: "0.92rem", fontWeight: 600, color: company.is_startup ? "#1a3a5c" : "#374151" }}>Startup Business</span>
-                          </label>
-                        </div>
-                      </div>
-
-                      {/* Startup Funding Stage (Conditional) */}
-                      {company.is_startup && (
-                        <div className="grid grid-cols-1 gap-6 mb-6">
-                          <div>
-                            <label className="form-label" style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, color: "#374151", marginBottom: "0.5rem" }}>Funding Stage *</label>
-                            <div style={{ position: "relative" }}>
-                              <Briefcase size={18} color="#9ca3af" style={{ position: "absolute", left: "1.1rem", top: "50%", transform: "translateY(-50%)", zIndex: 1 }} />
-                              <select value={company.funding_stage}
-                                onChange={e => setCompany({ ...company, funding_stage: e.target.value })}
-                                style={selectStyle}>
-                                <option value="">Select funding stage...</option>
-                                {["Bootstrapped", "Pre-Seed", "Seed", "Series A", "Series B", "Series C+"].map(s => <option key={s} value={s}>{s}</option>)}
-                              </select>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Company Size */}
-                      <div style={{ marginBottom: "1.5rem" }}>
-                        <label className="form-label" style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, color: "#374151", marginBottom: "0.5rem" }}>Company Size Scale *</label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {companySizes.map(size => {
-                            const isSelected = company.company_size === size;
-                            return (
-                              <label key={size} style={{
-                                display: "flex", alignItems: "center", gap: "1rem",
-                                padding: "1.1rem 1.5rem",
-                                border: `2px solid ${isSelected ? "#1a3a5c" : "#e5e7eb"}`,
-                                background: isSelected ? "rgba(26,58,92,0.04)" : "#ffffff",
-                                cursor: "pointer", transition: "all 0.2s",
-                              }}>
-                                <input type="radio" name="company_size" checked={isSelected}
-                                  onChange={() => setCompany({ ...company, company_size: size })}
-                                  style={{ accentColor: "#1a3a5c" }} />
-                                <span style={{ fontSize: "0.92rem", fontWeight: 600, color: isSelected ? "#1a3a5c" : "#374151" }}>{size}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
+                    <div className="flex flex-col gap-8">
+                      <div>
+                        <h2 className="text-xl font-black text-gray-900 tracking-tight">Organization Information</h2>
+                        <p className="text-sm text-gray-500 mt-1">Configure foundational dataset attributes.</p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="form-label" style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, color: "#374151", marginBottom: "0.5rem" }}>Annual Revenue (USD Millions)</label>
-                          <div style={{ position: "relative" }}>
-                            <DollarSign size={18} color="#9ca3af" style={{ position: "absolute", left: "1.1rem", top: "50%", transform: "translateY(-50%)" }} />
-                            <input type="number" value={company.annual_revenue_usd}
-                              onChange={e => setCompany({ ...company, annual_revenue_usd: Number(e.target.value) })}
-                              placeholder="e.g. 500" style={inputStyle} />
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Industry *</label>
+                          <div className="relative">
+                            <Building2 size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <select className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-[#1a3a5c] focus:border-[#1a3a5c] block pl-11 p-3.5 transition-colors outline-none" value={form.industry} onChange={e => setForm({...form, industry: e.target.value})}>
+                              <option value="">Select industry...</option>
+                              {["Education", "Energy", "Financial Services", "Healthcare", "Logistics", "Manufacturing", "Retail", "Technology", "Telecom", "Agriculture"].map(i => <option key={i} value={i}>{i}</option>)}
+                            </select>
                           </div>
                         </div>
-                        <div>
-                          <label className="form-label" style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, color: "#374151", marginBottom: "0.5rem" }}>Employee Count</label>
-                          <div style={{ position: "relative" }}>
-                            <Users size={18} color="#9ca3af" style={{ position: "absolute", left: "1.1rem", top: "50%", transform: "translateY(-50%)" }} />
-                            <input type="number" value={company.employee_count}
-                              onChange={e => setCompany({ ...company, employee_count: Number(e.target.value) })}
-                              placeholder="e.g. 5000" style={inputStyle} />
+
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Country *</label>
+                          <div className="relative">
+                            <MapPin size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <select className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-[#1a3a5c] focus:border-[#1a3a5c] block pl-11 p-3.5 transition-colors outline-none" value={form.country} onChange={e => setForm({...form, country: e.target.value})}>
+                              <option value="">Select country...</option>
+                              {["Brazil", "Canada", "China", "France", "Germany", "India", "Japan", "Netherlands", "Singapore", "South Korea", "Sweden", "UAE", "United Kingdom", "United States"].map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Analysis Year *</label>
+                          <div className="relative">
+                            <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input type="number" className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-[#1a3a5c] focus:border-[#1a3a5c] block pl-11 p-3.5 transition-colors outline-none" value={form.year} onChange={e => setForm({...form, year: e.target.value})} />
                           </div>
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Step 2: AI Readiness */}
+                  {/* STEP 2 */}
                   {step === 2 && (
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem", paddingBottom: "1.25rem", borderBottom: "1px solid #f3f4f6" }}>
-                        <div>
-                          <h3 style={{ fontSize: "1.15rem", fontWeight: 800, color: "#111827", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                            AI Readiness Assessment
-                          </h3>
-                          <p style={{ fontSize: "0.875rem", color: "#9ca3af", marginTop: "0.3rem" }}>
-                            Rate parameters from 0 to 10 based on internal maturity.
-                          </p>
-                        </div>
-                        <div style={{ textAlign: "center" }}>
-                          <div style={{
-                            width: "72px", height: "72px", background: "#1a3a5c",
-                            display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", flexShrink: 0,
-                          }}>
-                            <span style={{ fontSize: "1.3rem", fontWeight: 900, color: "#c8a96e", lineHeight: 1 }}>{readinessTotal.toFixed(0)}</span>
-                            <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.6)", marginTop: "2px" }}>/100</span>
-                          </div>
-                          <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginTop: "0.5rem" }}>Weighted</span>
-                        </div>
+                    <div className="flex flex-col gap-8">
+                      <div>
+                        <h2 className="text-xl font-black text-gray-900 tracking-tight">AI Capability Assessment</h2>
+                        <p className="text-sm text-gray-500 mt-1">Input exact float values corresponding to the ML dataset schema.</p>
                       </div>
 
-                      <ScoreSlider label="Data Infrastructure" description="Reliability of data lakes, storage schemas, and pipelines" value={readiness.data_score} onChange={v => setReadiness({ ...readiness, data_score: v })} />
-                      <ScoreSlider label="AI/ML Talent Resources" description="Data science staff, analytics capability, and hiring paths" value={readiness.talent_score} onChange={v => setReadiness({ ...readiness, talent_score: v })} />
-                      <ScoreSlider label="Leadership & Strategy Alignment" description="Management roadmap focus, AI alignment, and execution priority" value={readiness.leadership_score} onChange={v => setReadiness({ ...readiness, leadership_score: v })} />
-                      <ScoreSlider label="Technical Stack Capabilities" description="Compute networks, cloud providers, and development environments" value={readiness.tech_stack_score} onChange={v => setReadiness({ ...readiness, tech_stack_score: v })} />
-                      <ScoreSlider label="Change Management Adaptability" description="Workforce capability to adjust, adopt, and integrate AI products" value={readiness.change_mgmt_score} onChange={v => setReadiness({ ...readiness, change_mgmt_score: v })} />
-                      <ScoreSlider label="Input Data Quality" description="Reliability, completeness, noise, and governance of existing assets" value={readiness.data_quality_score} onChange={v => setReadiness({ ...readiness, data_quality_score: v })} />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* AI Adoption Level */}
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">AI Adoption Level (0 - 1)</label>
+                          <input type="number" step="0.0001" className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-[#1a3a5c] focus:border-[#1a3a5c] block p-3.5 outline-none" value={form.ai_adoption_level} onChange={e => setForm({...form, ai_adoption_level: e.target.value})} />
+                        </div>
+
+                        {/* Automation Rate */}
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Automation Rate (0 - 1)</label>
+                          <input type="number" step="0.0001" className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-[#1a3a5c] focus:border-[#1a3a5c] block p-3.5 outline-none" value={form.automation_rate} onChange={e => setForm({...form, automation_rate: e.target.value})} />
+                        </div>
+
+                        {/* Productivity Gain */}
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Productivity Gain (-1 to 1)</label>
+                          <input type="number" step="0.0001" className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-[#10B981] focus:border-[#10B981] block p-3.5 outline-none" value={form.productivity_gain} onChange={e => setForm({...form, productivity_gain: e.target.value})} />
+                        </div>
+
+                        {/* AI Maturity Score */}
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">AI Maturity Score (0 - 10)</label>
+                          <input type="number" step="0.01" className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-[#c8a96e] focus:border-[#c8a96e] block p-3.5 outline-none" value={form.ai_maturity_score} onChange={e => setForm({...form, ai_maturity_score: e.target.value})} />
+                        </div>
+
+                        {/* Employee AI Training Hours */}
+                        <div className="flex flex-col gap-2 md:col-span-2">
+                          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Employee AI Training Hours</label>
+                          <div className="relative">
+                            <Users size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input type="number" step="0.1" className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-[#1a3a5c] focus:border-[#1a3a5c] block pl-11 p-3.5 outline-none" value={form.employee_ai_training_hours} onChange={e => setForm({...form, employee_ai_training_hours: e.target.value})} />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 
-                  {/* Step 3: Initiative Setup */}
+                  {/* STEP 3 */}
                   {step === 3 && (
-                    <div>
-                      <div style={{ marginBottom: "2rem", paddingBottom: "1.25rem", borderBottom: "1px solid #f3f4f6" }}>
-                        <h3 style={{ fontSize: "1.15rem", fontWeight: 800, color: "#111827", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                          Initiative Setup
-                        </h3>
-                        <p style={{ fontSize: "0.875rem", color: "#9ca3af", marginTop: "0.3rem" }}>
-                          Outline the details of the AI use case you are evaluating.
-                        </p>
+                    <div className="flex flex-col gap-8">
+                      <div>
+                        <h2 className="text-xl font-black text-gray-900 tracking-tight">Initiative Configuration</h2>
+                        <p className="text-sm text-gray-500 mt-1">Finalize the investment parameters for ROI prediction mapping.</p>
                       </div>
 
-                      {/* Use Case */}
-                      <div style={{ marginBottom: "1.75rem" }}>
-                        <label className="form-label">AI Use Case *</label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                          {useCases.map(uc => {
-                            const isSelected = initiative.use_case === uc;
-                            return (
-                              <label key={uc} style={{
-                                display: "flex", alignItems: "center", gap: "0.875rem",
-                                padding: "1rem 1.25rem",
-                                border: `2px solid ${isSelected ? "#c8a96e" : "#e5e7eb"}`,
-                                background: isSelected ? "rgba(200,169,110,0.06)" : "#ffffff",
-                                cursor: "pointer", transition: "all 0.2s",
-                              }}>
-                                <input type="radio" name="usecase" checked={isSelected}
-                                  onChange={() => setInitiative({ ...initiative, use_case: uc })}
-                                  style={{ accentColor: "#c8a96e" }} />
-                                <span style={{ fontSize: "0.9rem", fontWeight: 600, color: isSelected ? "#111827" : "#374151" }}>{uc}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-7">
-                        <div>
-                          <label className="form-label">Investment Budget (USD)</label>
-                          <div style={{ position: "relative" }}>
-                            <DollarSign size={18} color="#9ca3af" style={{ position: "absolute", left: "1.1rem", top: "50%", transform: "translateY(-50%)" }} />
-                            <input type="number" value={initiative.investment_budget_usd}
-                              onChange={e => setInitiative({ ...initiative, investment_budget_usd: Number(e.target.value) })}
-                              placeholder="e.g. 2000000" style={inputStyle} />
+                      <div className="grid grid-cols-1 gap-6">
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">AI Investment Budget (USD) *</label>
+                          <div className="relative">
+                            <DollarSign size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input type="number" className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-lg font-black rounded-xl focus:ring-[#10B981] focus:border-[#10B981] block pl-11 p-4 transition-colors outline-none" value={form.ai_investment_usd} onChange={e => setForm({...form, ai_investment_usd: e.target.value})} />
                           </div>
-                          <p style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.5rem" }}>Include software, coding costs, and personnel overhead.</p>
                         </div>
-                        <div>
-                          <label className="form-label">Implementation Timeline (months)</label>
-                          <div style={{ position: "relative" }}>
-                            <Calendar size={18} color="#9ca3af" style={{ position: "absolute", left: "1.1rem", top: "50%", transform: "translateY(-50%)" }} />
-                            <input type="number" value={initiative.timeline_months}
-                              onChange={e => setInitiative({ ...initiative, timeline_months: Number(e.target.value) })}
-                              min={1} max={120} style={inputStyle} />
+
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Planned AI Deployments *</label>
+                          <div className="relative">
+                            <Rocket size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input type="number" className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-lg font-black rounded-xl focus:ring-[#1a3a5c] focus:border-[#1a3a5c] block pl-11 p-4 transition-colors outline-none" value={form.deployment_count} onChange={e => setForm({...form, deployment_count: e.target.value})} />
                           </div>
-                          <p style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.5rem" }}>Estimated duration from kick-off to core model deployment.</p>
-                        </div>
-                      </div>
-
-                      {/* File Upload Component */}
-                      <div className="mb-7">
-                        <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                          <Upload size={18} color="#9ca3af" /> Optional: Upload Historical Dataset
-                        </label>
-                        <p style={{ fontSize: "0.8rem", color: "#6b7280", marginBottom: "1rem" }}>
-                          Upload historical data (CSV, XLSX) to enhance ROI predictions with custom models.
-                        </p>
-                        <FileUpload 
-                          onUploadSuccess={(url) => setInitiative({ ...initiative, datasetUrl: url })} 
-                        />
-                      </div>
-
-                      {/* Summary */}
-                      <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", padding: "1.75rem" }}>
-                        <h4 style={{ fontSize: "0.78rem", fontWeight: 800, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.1em", display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1.1rem" }}>
-                          <Layers size={15} /> Assessment Summary
-                        </h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {[
-                            { label: "Industry Sector", value: company.industry_sector || "—" },
-                            { label: "Business Type", value: company.is_startup ? `Startup (${company.funding_stage || "Any"})` : "Established" },
-                            { label: "Use Case", value: initiative.use_case || "—" },
-                            { label: "Readiness Index", value: `${readinessTotal.toFixed(1)}/100`, accent: true },
-                            { label: "Budget Allocated", value: `$${initiative.investment_budget_usd.toLocaleString()}` },
-                          ].map(({ label, value, accent }) => (
-                            <div key={label}>
-                              <span style={{ fontSize: "0.72rem", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, display: "block", marginBottom: "0.3rem" }}>{label}</span>
-                              <span style={{ fontSize: "1.05rem", fontWeight: 800, color: accent ? "#c8a96e" : "#111827" }}>{value}</span>
-                            </div>
-                          ))}
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Navigation */}
-                  <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-4 mt-10 pt-6 border-t border-gray-100 w-full">
+                  {/* Navigation Buttons */}
+                  <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-4 mt-12 pt-8 border-t border-gray-100">
                     {step > 1 ? (
-                      <button onClick={() => setStep(step - 1)}
-                        className="group relative flex items-center justify-center gap-2 w-full sm:w-auto overflow-hidden rounded-full bg-white border-2 border-gray-200 px-6 py-3 sm:px-8 sm:py-3.5 font-bold text-gray-700 shadow-sm transition-all duration-300 hover:border-gray-300 hover:bg-gray-50 hover:shadow-md hover:-translate-y-0.5"
-                      >
-                        <ArrowLeft size={16} className="relative z-10 transition-transform duration-300 group-hover:-translate-x-1" />
-                        <span className="relative z-10 text-[0.75rem] sm:text-[0.8rem] tracking-[0.1em] uppercase">Back</span>
+                      <button onClick={() => setStep(step - 1)} className="group flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 font-bold text-gray-500 hover:text-gray-900 transition-colors">
+                        <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
+                        <span className="text-xs tracking-widest uppercase">Back</span>
                       </button>
                     ) : <div className="hidden sm:block" />}
 
                     {step < 3 ? (
-                      <button onClick={() => setStep(step + 1)}
-                        className="group relative flex items-center justify-center gap-2 w-full sm:w-auto overflow-hidden rounded-full bg-gradient-to-r from-[#1a3a5c] to-[#2d5a8a] px-6 py-3 sm:px-8 sm:py-3.5 font-bold text-white shadow-[0_4px_12px_rgba(26,58,92,0.25)] transition-all duration-300 hover:shadow-[0_6px_20px_rgba(26,58,92,0.4)] hover:-translate-y-0.5"
-                      >
-                        <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-100%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(100%)]">
-                          <div className="relative h-full w-8 bg-white/20" />
-                        </div>
-                        <span className="relative z-10 text-[0.75rem] sm:text-[0.8rem] tracking-[0.1em] uppercase">Next</span>
-                        <div className="relative z-10 flex items-center justify-center bg-[#c8a96e] rounded-full w-5 h-5 sm:w-6 sm:h-6 shadow-sm transition-transform duration-300 group-hover:translate-x-1">
-                          <ArrowRight size={14} className="text-white" strokeWidth={3} />
-                        </div>
+                      <button onClick={() => setStep(step + 1)} className="group relative flex items-center justify-center gap-2 w-full sm:w-auto overflow-hidden rounded-xl bg-gradient-to-r from-[#1a3a5c] to-[#2d5a8a] px-8 py-3.5 font-bold text-white shadow-lg shadow-[#1a3a5c]/20 hover:shadow-[#1a3a5c]/40 transition-all hover:-translate-y-0.5">
+                        <span className="relative z-10 text-xs tracking-widest uppercase">Next Step</span>
+                        <ArrowRight size={16} className="relative z-10 transition-transform group-hover:translate-x-1" />
                       </button>
                     ) : (
-                      <button onClick={handleSubmit}
-                        className="group relative flex items-center justify-center gap-2 w-full sm:w-auto overflow-hidden rounded-full bg-gradient-to-r from-[#c8a96e] to-[#b8944f] px-6 py-3 sm:px-8 sm:py-3.5 font-bold text-white shadow-[0_4px_12px_rgba(200,169,110,0.25)] transition-all duration-300 hover:shadow-[0_6px_20px_rgba(200,169,110,0.4)] hover:-translate-y-0.5"
-                      >
-                        <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-100%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(100%)]">
-                          <div className="relative h-full w-8 bg-white/20" />
-                        </div>
-                        <span className="relative z-10 text-[0.85rem] sm:text-[0.85rem] tracking-[0.1em] uppercase">🚀 Compute Strategy Projections</span>
+                      <button onClick={handleSubmit} className="group relative flex items-center justify-center gap-2 w-full sm:w-auto overflow-hidden rounded-xl bg-gradient-to-r from-[#c8a96e] to-[#b8944f] px-8 py-3.5 font-bold text-white shadow-lg shadow-[#c8a96e]/30 hover:shadow-[#c8a96e]/50 transition-all hover:-translate-y-0.5">
+                        <span className="relative z-10 text-xs tracking-widest uppercase flex items-center gap-2"><BarChart3 size={16} /> Compute Strategy Projections</span>
                       </button>
                     )}
                   </div>
@@ -689,6 +392,9 @@ localStorage.setItem(
               )}
             </AnimatePresence>
           </div>
+          
+          {/* Right Sidebar */}
+          {!loading && renderSidebar()}
         </div>
       </main>
     </div>

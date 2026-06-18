@@ -84,6 +84,7 @@ model Analysis {
   maturityLevel   String?
   predictedBenefit Float?
   boardroomReport  String?
+  shapFeatures     Json?
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
