@@ -5,9 +5,13 @@ export async function POST(req: Request) {
     const body = await req.json();
     console.log("[route.ts] Inside route.ts: Received body", body);
 
-    console.log("[route.ts] Before FastAPI call: Fetching http://127.0.0.1:8000/predict");
+    const backendUrl = process.env.NODE_ENV === 'production' 
+      ? "https://khyati11-corporate-advisor-ai-agent.hf.space/predict"
+      : "http://127.0.0.1:8000/predict";
+      
+    console.log(`[route.ts] Before FastAPI call: Fetching ${backendUrl}`);
     const response = await fetch(
-      "http://127.0.0.1:8000/predict",
+      backendUrl,
       {
         method: "POST",
         headers: {
